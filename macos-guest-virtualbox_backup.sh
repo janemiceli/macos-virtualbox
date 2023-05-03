@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -i
 # Push-button installer of macOS on VirtualBox
 # (c) myspaghetti, licensed under GPL2.0 or higher
 # url: https://github.com/myspaghetti/macos-virtualbox
@@ -15,13 +15,12 @@
 
 function set_variables() {
 # Customize the installation by setting these variables:
-#vm_name="macOS ${macOS_release_name}"  # name of the VirtualBox virtual machine
+vm_name="macOS"                  # name of the VirtualBox virtual machine
 macOS_release_name="Ventura"     # install "HighSierra" "Mojave" or "Catalina"
-vm_name="${macOS_release_name}"  # name of the VirtualBox virtual machine
-storage_size=22000               # VM disk image size in MB, minimum 22000
+storage_size=60000               # VM disk image size in MB, minimum 22000
 storage_format="vdi"             # VM disk image file format, "vdi" or "vmdk"
 cpu_count=2                      # VM CPU cores, minimum 2
-memory_size=8192                 # VM RAM in MB, minimum 2048
+memory_size=9096                 # VM RAM in MB, minimum 2048
 gpu_vram=128                     # VM video RAM in MB, minimum 34, maximum 128
 resolution="1280x800"            # VM display resolution
 
@@ -34,7 +33,7 @@ resolution="1280x800"            # VM display resolution
 # Assigning the following parameters is not required when installing or using macOS.
 
 DmiSystemFamily="MacBook Air"          # Model Name
-DmiSystemProduct="M1"                  # Model Identifier
+DmiSystemProduct="Apple M1"            # Model Identifier
 DmiBIOSVersion="string:MBP7.89"        # Boot ROM Version
 DmiSystemSerial="NO_DEVICE_SN"         # Serial Number (system)
 DmiSystemUuid="CAFECAFE-CAFE-CAFE-CAFE-DECAFFDECAFF" # Hardware UUID
@@ -48,7 +47,7 @@ SystemUUID="aabbccddeeff00112233445566778899" # System UUID
 # set to "yes", the script will attempt to get the host's EFI and NVRAM
 # parameters and override the above EFI and NVRAM parameters.
 
-get_parameters_from_macOS_host="yes"
+get_parameters_from_macOS_host="no"
 
 if [[ "$(sw_vers 2>/dev/null)" && "${get_parameters_from_macOS_host}" =~ [Yy] ]]; then
     # These values are taken from a genuine Mac...
@@ -113,7 +112,7 @@ function pad_to_33_chars() {
 
 # custom settings prompt
 echo -e "\nvm_name=\"${vm_name}\""
-pad_to_33_chars "macOS_release_name=\"Mac OS X (64-bit)\"" "# install \"HighSierra\" \"Mojave\" \"Catalina\""
+pad_to_33_chars "macOS_release_name=\"${macOS_release_name}\"" "# install \"HighSierra\" \"Mojave\" \"Catalina\""
 pad_to_33_chars "storage_size=${storage_size}"                 "# VM disk image size in MB, minimum 22000"
 pad_to_33_chars "storage_format=\"${storage_format}\""         "# VM disk image file format, \"vdi\" or \"vmdk\""
 pad_to_33_chars "cpu_count=${cpu_count}"                       "# VM CPU cores, minimum 2"
@@ -335,9 +334,7 @@ fi
 HighSierra_sucatalog='https://swscan.apple.com/content/catalogs/others/index-10.13-10.12-10.11-10.10-10.9-mountainlion-lion-snowleopard-leopard.merged-1.sucatalog'
 Mojave_sucatalog='https://swscan.apple.com/content/catalogs/others/index-10.14-10.13-10.12-10.11-10.10-10.9-mountainlion-lion-snowleopard-leopard.merged-1.sucatalog'
 Catalina_sucatalog='https://swscan.apple.com/content/catalogs/others/index-10.15-10.14-10.13-10.12-10.11-10.10-10.9-mountainlion-lion-snowleopard-leopard.merged-1.sucatalog'
-Monterey_sucatalog="https://swscan.apple.com/content/catalogs/others/index-12beta-12-10.16-10.15-10.14-10.13-10.12-10.11-10.10-10.9-mountainlion-lion-snowleopard-leopard.merged-1.sucatalog"
-#Ventura_sucatalog="https://swscan.apple.com/content/catalogs/others/index-13seed-13-12-10.16-10.15-10.14-10.13-10.12-10.11-10.10-10.9-mountainlion-lion-snowleopard-leopard.merged-1.sucatalog"
-Ventura_sucatalog="https://swscan.apple.com/content/catalogs/others/index-13seed-13-12-10.16-10.15-10.14-10.13-10.12-10.11-10.10-10.9-mountainlion-lion-snowleopard-leopard.merged-1.sucatalog"
+Ventura_sucatalog="https://swscan.apple.com/content/catalogs/others/index-13.1-13-12-10.16-10.15-10.14-10.13-10.12-10.11-10.10-10.9-mountainlion-lion-snowleopard-leopard.merged-1.sucatalog"
 if [[ "${macOS_release_name:0:1}" =~ [Cc] ]]; then
     if [[ ! ( "${vbox_version:0:1}" -gt 6 ||
               "${vbox_version}" =~ ^6\.1\.[4-9] ||
@@ -357,12 +354,12 @@ elif [[ "${macOS_release_name:0:1}" =~ [Hh] ]]; then
     CFBundleShortVersionString="10.13"
     sucatalog="${HighSierra_sucatalog}"
 elif [[ "${macOS_release_name:0:1}" =~ [Mm] ]]; then
-    macOS_release_name="Monterey"
-    CFBundleShortVersionString="12.6"
-    sucatalog="${Monterey_sucatalog}"
+    macOS_release_name="Mojave"
+    CFBundleShortVersionString="10.14"
+    sucatalog="${Mojave_sucatalog}"
 elif [[ "${macOS_release_name:0:1}" =~ [Vv] ]]; then
     macOS_release_name="Ventura"
-    CFBundleShortVersionString="13"
+    CFBundleShortVersionString="13.1"
     sucatalog="${Ventura_sucatalog}"
 else
     echo "Can't parse macOS_release_name. Exiting."
@@ -376,17 +373,17 @@ function prompt_delete_existing_vm() {
 print_dimly "stage: prompt_delete_existing_vm"
 if [[ -n "$(VBoxManage showvminfo "${vm_name}" 2>/dev/null)" ]]; then
     echo -e "\nA virtual machine named \"${vm_name}\" already exists."
-    #echo -ne "${warning_color}Delete existing virtual machine \"${vm_name}\"?${default_color}"
-    #prompt_delete_y_n
-    #if [[ "${delete}" == "y" ]]; then
+    echo -ne "${warning_color}Delete existing virtual machine \"${vm_name}\"?${default_color}"
+    prompt_delete_y_n
+    if [[ "${delete}" == "y" ]]; then
         echo "Deleting ${vm_name} virtual machine."
         VBoxManage unregistervm "${vm_name}" --delete
-    #else
-    #    echo -e "\n${highlight_color}Please assign a different VM name to variable \"vm_name\" by editing the script,${default_color}"
-    #    echo "or skip this check manually as described when executing the following command:"
-    #    would_you_like_to_know_less
-    #    exit
-    #fi
+    else
+        echo -e "\n${highlight_color}Please assign a different VM name to variable \"vm_name\" by editing the script,${default_color}"
+        echo "or skip this check manually as described when executing the following command:"
+        would_you_like_to_know_less
+        exit
+    fi
 fi
 }
 
@@ -429,7 +426,7 @@ function prepare_macos_installation_files() {
 print_dimly "stage: prepare_macos_installation_files"
 # Find the correct download URL in the Apple catalog
 echo -e "\nDownloading Apple macOS ${macOS_release_name} software update catalog"
-echo -e "${sucatalog} ${wgetargs} --output-document=${macOS_release_name}_sucatalog"
+echo -e "wget ${sucatalog} ${wgetargs} --output-document=${macOS_release_name}_sucatalog"
 wget "${sucatalog}" \
      ${wgetargs} \
      --output-document="${macOS_release_name}_sucatalog"
@@ -448,28 +445,25 @@ if [[ ! -s "${macOS_release_name}_sucatalog" ]]; then
 fi
 
 echo "Trying to find macOS ${macOS_release_name} InstallAssistant download URL"
-echo "tac ${macOS_release_name}_sucatalog | csplit - '/InstallAssistantAuto.smd/+1' '{*}' -f ${macOS_release_name}_sucatalog_ -s"
 tac "${macOS_release_name}_sucatalog" | csplit - '/InstallAssistantAuto.smd/+1' '{*}' -f "${macOS_release_name}_sucatalog_" -s
 for catalog in "${macOS_release_name}_sucatalog_"* "error"; do
-    echo -e "catalog listing ${catalog}"
     if [[ "${catalog}" == error ]]; then
-        #command rm "${macOS_release_name}_sucatalog"*
+        command rm "${macOS_release_name}_sucatalog"*
         echo "Couldn't find the requested download URL in the Apple catalog. Exiting."
        exit
     fi
     urlbase="$(tail -n 1 "${catalog}" 2>/dev/null)"
-    urlbase="$(expr match "${urlbase}" '.*\(https://[^<]*/\)')"
-    echo -e "urlbase ${urlbase}"
+    urlbase="$(expr match "${urlbase}" '.*\(http://[^<]*/\)')"
     wget "${urlbase}InstallAssistantAuto.smd" \
-    ${wgetargs} --output-document="${catalog}_InstallAssistantAuto.smd"
-    #echo -e "wget ${urlbase}InstallAssistantAuto.smd ${wgetargs} --output-document=${catalog}_InstallAssistantAuto.smd"
+    ${wgetargs} \
+    --output-document="${catalog}_InstallAssistantAuto.smd"
     if [[ "$(cat "${catalog}_InstallAssistantAuto.smd" )" =~ Beta ]]; then
         continue
     fi
     found_version="$(head -n 6 "${catalog}_InstallAssistantAuto.smd" | tail -n 1)"
     if [[ "${found_version}" == *${CFBundleShortVersionString}* ]]; then
         echo -e "Found download URL: ${urlbase}\n"
-        #command rm "${macOS_release_name}_sucatalog"*
+        command rm "${macOS_release_name}_sucatalog"*
         break
     fi
 done
@@ -480,8 +474,9 @@ for filename in "BaseSystem.chunklist" \
                 "AppleDiagnostics.chunklist" \
                 "BaseSystem.dmg" \
                 "InstallESDDmg.pkg"; \
-    do echo -e "wget ${urlbase}${filename} ${wgetargs} --output-document ${macOS_release_name}_${filename}"
-        wget "${urlbase}${filename}" ${wgetargs} --output-document "${macOS_release_name}_${filename}"
+    do wget "${urlbase}${filename}" \
+            ${wgetargs} \
+            --output-document "${macOS_release_name}_${filename}"
 done
 
 echo -e "\nSplitting the several-GB InstallESDDmg.pkg into 1GB parts because"
@@ -489,14 +484,14 @@ echo "VirtualBox hasn't implemented UDF/HFS VISO support yet and macOS"
 echo "doesn't support ISO 9660 Level 3 with files larger than 2GB."
 split --verbose -a 2 -d -b 1000000000 "${macOS_release_name}_InstallESDDmg.pkg" "${macOS_release_name}_InstallESD.part"
 
-#if [[ ! -s "ApfsDriverLoader.efi" ]]; then
+if [[ ! -s "ApfsDriverLoader.efi" ]]; then
     echo -e "\nDownloading open-source APFS EFI drivers used for VirtualBox 6.0 and 5.2"
     [[ "${vbox_version:0:1}" -gt 6 || ( "${vbox_version:0:1}" = 6 && "${vbox_version:2:1}" -ge 1 ) ]] && echo "...even though VirtualBox version 6.1 or higher is detected."
-    wget 'https://github.com/acidanthera/AppleSupportPkg/releases/download/2.1.7/AppleSupport-v2.1.7-RELEASE.zip' \
+    wget 'https://github.com/acidanthera/AppleSupportPkg/releases/download/2.0.4/AppleSupport-v2.0.4-RELEASE.zip' \
         ${wgetargs} \
-        --output-document 'AppleSupport-v2.1.7-RELEASE.zip'
-        unzip -oj 'AppleSupport-v2.1.7-RELEASE.zip'
-#fi
+        --output-document 'AppleSupport-v2.0.4-RELEASE.zip'
+        unzip -oj 'AppleSupport-v2.0.4-RELEASE.zip'
+fi
 }
 
 function create_nvram_files() {
@@ -584,12 +579,12 @@ function create_macos_installation_files_viso() {
 print_dimly "stage: create_macos_installation_files_viso"
 echo "Creating EFI startup script"
 echo 'echo -off' > "${vm_name}_startup.nsh"
-#if [[ ( "${vbox_version:0:1}" -lt 6 ) || ( "${vbox_version:0:1}" = 6 && "${vbox_version:2:1}" = 0 ) ]]; then
+if [[ ( "${vbox_version:0:1}" -lt 6 ) || ( "${vbox_version:0:1}" = 6 && "${vbox_version:2:1}" = 0 ) ]]; then
     echo 'load fs0:\EFI\OC\Drivers\AppleImageLoader.efi
 load fs0:\EFI\OC\Drivers\AppleUiSupport.efi
 load fs0:\EFI\OC\Drivers\ApfsDriverLoader.efi
 map -r' >> "${vm_name}_startup.nsh"
-#fi
+fi
 # EFI Internal Shell 2.1 (VBox 6.0) doesn't support for-loops that start with 0
 echo 'if exist "fs0:\EFI\NVRAM\MLB.bin" then
   dmpstore -all -l fs0:\EFI\NVRAM\MLB.bin
@@ -616,7 +611,7 @@ for %a run (1 5)
   endif
 endfor' >> "${vm_name}_startup.nsh"
 
-echo -e "\nCreating VirtualBox virtual ISO containing the"
+echo -e "\nCreating VirtualBox 6 virtual ISO containing the"
 echo -e "installation files from swcdn.apple.com\n"
 create_viso_header "${macOS_release_name}_installation_files.viso" "${macOS_release_name:0:5}-files"
 
@@ -665,7 +660,7 @@ if [[ -n "$(
             --memory "${memory_size}" --vram "${gpu_vram}" --pae on \
             --boot1 none --boot2 none --boot3 none --boot4 none \
             --firmware efi --rtcuseutc on --chipset ich9 ${extension_pack_usb3_support} \
-            --mouse usbtablet 
+            --mouse usbtablet --keyboard usb 2>&1 >/dev/null
            )" ]]; then
     echo -e "\nError: Could not configure virtual machine \"${vm_name}\"."
     echo -e "If the VM is powered on, power off the virtual machine and resume the script or"
@@ -829,7 +824,7 @@ pressing CTRL-C then see the documentation for information about applying
 different CPU profiles in the section ${highlight_color}CPU profiles and CPUID settings${default_color}."
 ( VBoxManage startvm "${vm_name}" >/dev/null 2>&1 )
 echo -e "\nUntil the script completes, please do not manually interact with\nthe virtual machine."
-#[[ -z "${kscd}" ]] && declare_scancode_dict
+[[ -z "${kscd}" ]] && declare_scancode_dict
 prompt_lang_utils_terminal
 kbstring='/Volumes/bootinst-sh/bootinst.sh'
 send_keys
@@ -973,7 +968,7 @@ if [[ -n $(
           ) ]]; then echo "Could not attach \"${vm_name}_populate_macos_target_disk.viso\". Exiting."; exit; fi
 echo "The VM will boot from the populated installer base system virtual disk."
 ( VBoxManage startvm "${vm_name}" >/dev/null 2>&1 )
-#[[ -z "${kscd}" ]] && declare_scancode_dict
+[[ -z "${kscd}" ]] && declare_scancode_dict
 prompt_lang_utils_terminal
 add_another_terminal
 echo -e "\nThe second open Terminal in the virtual machine copies EFI and NVRAM files"
@@ -982,12 +977,12 @@ echo -e "\nAfter the installer finishes preparing and the EFI and NVRAM files ar
 echo -ne "macOS will install and boot up when booting the target disk.\n"
 print_dimly "Please wait"
 kbstring='/Volumes/target-sh/nvram.sh'
-#send_keys
-#send_enter
+send_keys
+send_enter
 cycle_through_terminal_windows
 kbstring='/Volumes/target-sh/startosinstall.sh'
-#send_keys
-#send_enter
+send_keys
+send_enter
 if [[ ! ( "${vbox_version:0:1}" -gt 6
         || ( "${vbox_version:0:1}" = 6 && "${vbox_version:2:1}" -ge 1 ) ) ]]; then
     echo -e "\n${highlight_color}When the installer finishes preparing and reboots the VM, press enter${default_color} so the script
@@ -1382,7 +1377,7 @@ function create_viso_header() {
 # https://wiki.osdev.org/PS/2_Keyboard#Scan_Code_Set_1
 # First half of hex code - press, second half - release, unless otherwise specified
 function declare_scancode_dict() {
-    declare kscd
+    declare -gA kscd
     kscd=(
         ["ESC"]="01 81"
         ["1"]="02 82"
@@ -1642,7 +1637,7 @@ function prompt_delete_y_n() {
 }
 
 # command-line argument processing
-#check_shell
+check_shell
 stages=(
     check_gnu_coreutils_prefix
     set_variables
